@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "955994283079",
+    "project_id": "vivek-sentyria-smart-waste",
+    "storage_bucket": "vivek-sentyria-smart-waste.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:955994283079:android:f70b6fc044b40ecafda562",
+        "android_client_info": {
+          "package_name": "com.example.vivek_smart_waste_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA1ZWPoNNRJ2J75pYz4pM5x513Aas1Ptvw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
