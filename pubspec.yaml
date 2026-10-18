@@ -16,23 +16,24 @@ dependencies:
   cloud_firestore: ^5.4.4
   image_picker: ^1.2.4
   url_launcher: ^6.3.3
+  http: ^1.2.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
-  flutter_launcher_icons: "^0.13.1"
+  flutter_launcher_icons: ^0.13.1
 
 flutter:
   uses-material-design: true
   assets:
     - assets/Ecotrack.png
 
+# लॉन्चर आइकॉन की कॉन्फ़िगरेशन हमेशा फाइल के सबसे आखिर में होनी चाहिए
 flutter_launcher_icons:
   image_path: "assets/Ecotrack.png"
-  android: "launcher_icon"
+  android: true
   ios: true
-  dependencies:
-    flutter:
-      sdk: flutter
-    http: ^1.2.0
+  web:
+    generate: true
+    image_path: "assets/Ecotrack.png"

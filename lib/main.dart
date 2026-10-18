@@ -32,7 +32,7 @@ class EcoTrackApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'EcoTrack - Ghaziabad Smart Waste Management',
+      title: 'EcoTrack - Smart Waste Management',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blue,

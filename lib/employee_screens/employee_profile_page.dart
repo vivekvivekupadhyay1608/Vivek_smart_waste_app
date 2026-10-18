@@ -92,7 +92,7 @@ class _EmployeeProfilePageState extends State<EmployeeProfilePage> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text("Enter new email and current password for security verification (OTP/Link).", style: TextStyle(fontSize: 13, color: Colors.grey)),
+              const Text("Enter new email and current password for security verification.", style: TextStyle(fontSize: 13, color: Colors.grey)),
               const SizedBox(height: 10),
               TextField(
                 controller: newEmailController,
@@ -132,7 +132,7 @@ class _EmployeeProfilePageState extends State<EmployeeProfilePage> {
 
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Verification link sent to new email! Please verify."), backgroundColor: Colors.green),
+                    const SnackBar(content: Text("Verification link sent to new email!"), backgroundColor: Colors.green),
                   );
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -170,6 +170,8 @@ class _EmployeeProfilePageState extends State<EmployeeProfilePage> {
         String dbEmail = userData['email'] ?? 'worker@ecotrack.com';
         String dbAddress = userData['address'] ?? 'Zone 3, Depot Road';
         String dbPincode = userData['pincode'] ?? '201001';
+        String dbEmpId = userData['employeeId'] ?? 'EMP-2026-001';
+        String dbVehicleNo = userData['vehicleNumber'] ?? 'UP-16-TC-9988';
 
         return ListView(
           padding: const EdgeInsets.all(20),
@@ -224,6 +226,30 @@ class _EmployeeProfilePageState extends State<EmployeeProfilePage> {
                 onPressed: () => _changeEmailDialog(dbEmail),
                 child: const Text("Change", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
               ),
+            ),
+            const SizedBox(height: 10),
+
+            // नई फील्ड: Employee ID
+            ListTile(
+              tileColor: widget.isDarkMode ? Colors.grey[850] : Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              leading: const Icon(Icons.badge, color: Color(0xFF2E7D32)),
+              title: const Text("Employee ID", style: TextStyle(fontSize: 12, color: Colors.grey)),
+              subtitle: Text(dbEmpId, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              trailing: const Icon(Icons.edit, color: Colors.grey),
+              onTap: () => _editFieldDialog("Employee ID", dbEmpId, 'employeeId'),
+            ),
+            const SizedBox(height: 10),
+
+            // नई फील्ड: Vehicle Number
+            ListTile(
+              tileColor: widget.isDarkMode ? Colors.grey[850] : Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              leading: const Icon(Icons.local_shipping, color: Color(0xFF2E7D32)),
+              title: const Text("Vehicle Number", style: TextStyle(fontSize: 12, color: Colors.grey)),
+              subtitle: Text(dbVehicleNo, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              trailing: const Icon(Icons.edit, color: Colors.grey),
+              onTap: () => _editFieldDialog("Vehicle Number", dbVehicleNo, 'vehicleNumber'),
             ),
             const SizedBox(height: 10),
 
