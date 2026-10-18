@@ -1,51 +1,106 @@
 import 'package:flutter/material.dart';
-import 'splash_page.dart'; // शुरुआत स्प्लैश से होगी
+import 'package:firebase_core/firebase_core.dart';
+import 'login_page.dart';
 
-// यह ग्लोबल नोटिफायर पूरी ऐप की थीम को कंट्रोल करेगा
-ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
 
-void main() {
-  runApp(const MyApp());
+  try {
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: const FirebaseOptions(
+          apiKey: "AIzaSyCknD9Qi0XuicEmTjCmrlZgd7ewsGF5BCY",
+          authDomain: "vivek-sentyria-smart-waste.firebaseapp.com",
+          projectId: "vivek-sentyria-smart-waste",
+          storageBucket: "vivek-sentyria-smart-waste.firebasestorage.app",
+          messagingSenderId: "955994283079",
+          appId: "1:955994283079:web:9d3cc579f02c967dfda562",
+        ),
+      );
+    }
+    print("🔥 Firebase initialized successfully!");
+  } catch (e) {
+    print("⚠️ Firebase initialization error: $e");
+  }
+
+  runApp(const EcoTrackApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class EcoTrackApp extends StatelessWidget {
+  const EcoTrackApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<ThemeMode>(
-      valueListenable: themeNotifier,
-      builder: (context, currentThemeMode, child) {
-        return MaterialApp(
-          title: 'EcoTrack Smart Waste Management',
-          debugShowCheckedModeBanner: false,
+    return MaterialApp(
+      title: 'EcoTrack - Ghaziabad Smart Waste Management',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        scaffoldBackgroundColor: const Color(0xFFF1F5F9),
+        fontFamily: 'Roboto',
+      ),
+      home: const SplashScreen(),
+    );
+  }
+}
 
-          // लाइट थीम
-          theme: ThemeData(
-            useMaterial3: true,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: Colors.green,
-              brightness: Brightness.light,
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(seconds: 2), () {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Image.asset(
+                'assets/Ecotrack.png',
+                width: 80,
+                height: 80,
+                errorBuilder: (context, error, stackTrace) {
+                  return const Icon(Icons.eco_rounded, size: 80, color: Color(0xFF3B82F6));
+                },
+              ),
             ),
-            scaffoldBackgroundColor: const Color(0xFFF8F9FA),
-          ),
-
-          // डार्क थीम
-          darkTheme: ThemeData(
-            useMaterial3: true,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: Colors.green,
-              brightness: Brightness.dark,
+            const SizedBox(height: 20),
+            const Text(
+              'EcoTrack Ghaziabad',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
             ),
-            scaffoldBackgroundColor: const Color(0xFF0F172A),
-          ),
-
-          themeMode: currentThemeMode,
-
-          // ऐप हमेशा पहले स्प्लैश पेज से शुरू होगी
-          home: const SplashPage(),
-        );
-      },
+            const SizedBox(height: 8),
+            const Text(
+              'Smart Waste Management System',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 30),
+            const CircularProgressIndicator(color: Color(0xFF3B82F6)),
+          ],
+        ),
+      ),
     );
   }
 }
