@@ -87,9 +87,9 @@ class _EmployeeStatsPageState extends State<EmployeeStatsPage> {
           ),
           const SizedBox(height: 30),
 
-          // एनालिटिकल ग्राफ रिप्रेजेंटेशन
+          // 1. साप्ताहिक (Weekly) एनालिटिकल ग्राफ - Mon to Sun
           const Text(
-            "Hourly Collection Analytics",
+            "Weekly Collection Analytics (Mon - Sun)",
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 15),
@@ -108,16 +108,55 @@ class _EmployeeStatsPageState extends State<EmployeeStatsPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    _buildBar("8 AM", _isPresentationDemoMode ? 0.3 : 0.0),
-                    _buildBar("10 AM", _isPresentationDemoMode ? 0.7 : 0.0),
-                    _buildBar("12 PM", _isPresentationDemoMode ? 0.9 : 0.0),
-                    _buildBar("2 PM", _isPresentationDemoMode ? 0.5 : 0.0),
-                    _buildBar("4 PM", _isPresentationDemoMode ? 0.85 : 0.0),
+                    _buildBar("Mon", _isPresentationDemoMode ? 0.6 : 0.0),
+                    _buildBar("Tue", _isPresentationDemoMode ? 0.8 : 0.0),
+                    _buildBar("Wed", _isPresentationDemoMode ? 0.5 : 0.0),
+                    _buildBar("Thu", _isPresentationDemoMode ? 0.9 : 0.0),
+                    _buildBar("Fri", _isPresentationDemoMode ? 0.7 : 0.0),
+                    _buildBar("Sat", _isPresentationDemoMode ? 0.85 : 0.0),
+                    _buildBar("Sun", _isPresentationDemoMode ? 0.4 : 0.0),
                   ],
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  _isPresentationDemoMode ? "Live Analytics Active (Demo Mode)" : "No active work recorded yet (Status: 0)",
+                  _isPresentationDemoMode ? "Weekly Analytics Active (Demo Mode)" : "No active work recorded yet (Status: 0)",
+                  style: TextStyle(fontSize: 12, color: _isPresentationDemoMode ? Colors.green : Colors.grey),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 30),
+
+          // 2. एरिया-वाइज (Shastri Nagar Blocks) एनालिटिकल ग्राफ
+          const Text(
+            "Shastri Nagar Area-wise Collection Analytics",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 15),
+          Container(
+            height: 220,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: widget.isDarkMode ? Colors.grey[850] : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.withOpacity(0.3)),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    _buildBar("Block A", _isPresentationDemoMode ? 0.75 : 0.0),
+                    _buildBar("Block B", _isPresentationDemoMode ? 0.9 : 0.0),
+                    _buildBar("Block C", _isPresentationDemoMode ? 0.65 : 0.0),
+                    _buildBar("Block D", _isPresentationDemoMode ? 0.85 : 0.0),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  _isPresentationDemoMode ? "Zone: Ghaziabad Shastri Nagar (Demo Active)" : "No area data recorded yet",
                   style: TextStyle(fontSize: 12, color: _isPresentationDemoMode ? Colors.green : Colors.grey),
                 ),
               ],
@@ -128,20 +167,20 @@ class _EmployeeStatsPageState extends State<EmployeeStatsPage> {
     );
   }
 
-  Widget _buildBar(String timeLabel, double heightFactor) {
+  Widget _buildBar(String label, double heightFactor) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         Container(
-          width: 25,
-          height: 100 * heightFactor,
+          width: 22,
+          height: 90 * heightFactor,
           decoration: BoxDecoration(
             color: const Color(0xFF2E7D32),
             borderRadius: BorderRadius.circular(6),
           ),
         ),
         const SizedBox(height: 8),
-        Text(timeLabel, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
       ],
     );
   }

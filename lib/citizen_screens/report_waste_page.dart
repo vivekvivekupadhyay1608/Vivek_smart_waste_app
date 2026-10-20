@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ReportWastePage extends StatefulWidget {
   const ReportWastePage({super.key});
@@ -15,6 +18,7 @@ class _ReportWastePageState extends State<ReportWastePage> {
   Uint8List? webImageBytes;
   final ImagePicker _picker = ImagePicker();
   final TextEditingController _descriptionController = TextEditingController();
+  bool _isUploading = false; // अपलोडिंग लोडिंग इंडिकेटर के लिए
 
   Future<void> _openCameraOrGallery() async {
     try {
@@ -66,6 +70,80 @@ class _ReportWastePageState extends State<ReportWastePage> {
     }
   }
 
+  // --- नई कार्यक्षमता: Firebase Storage और Firestore में रिपोर्ट और फोटो अपलोड करना ---
+  Future<void> _uploadAndSubmitReport() async {
+    final User? currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please login first to submit a report!"), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    setState(() {
+      _isUploading = true;
+    });
+
+    try {
+      String downloadUrl = "";
+      String fileName = 'waste_${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+      // 1. Firebase Storage रेफ़रेंस बनाएं
+      Reference ref = FirebaseStorage.instance
+          .ref()
+          .child('waste_reports')
+          .child(currentUser.uid)
+          .child(fileName);
+
+      // 2. वेब या मोबाइल के हिसाब से फोटो बाइट्स/फाइल अपलोड करें
+      if (kIsWeb && webImageBytes != null) {
+        await ref.putData(webImageBytes!);
+        downloadUrl = await ref.getDownloadURL();
+      } else if (!kIsWeb && reportWasteImage != null) {
+        await ref.putFile(reportWasteImage!);
+        downloadUrl = await ref.getDownloadURL();
+      }
+
+      // 3. Firestore Database में कम्प्लेंट का डेटा सेव करें
+      await FirebaseFirestore.instance.collection('complaints').add({
+        'userId': currentUser.uid,
+        'userEmail': currentUser.email ?? 'Anonymous',
+        'description': _descriptionController.text.trim(),
+        'imageUrl': downloadUrl,
+        'status': 'Pending', // एडमिन पैनल के लिए डिफ़ॉल्ट स्टेटस
+        'timestamp': FieldValue.serverTimestamp(),
+        'ward': 'Shastri Nagar', // डिफ़ॉल्ट वार्ड या लोकेशन
+      });
+
+      if (mounted) {
+        Navigator.pop(context); // डायलॉग बंद करें
+        _descriptionController.clear();
+        setState(() {
+          reportWasteImage = null;
+          webImageBytes = null;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Report uploaded and submitted successfully!"),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to submit report: $e"), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+        });
+      }
+    }
+  }
+
   void _showWasteReportPreviewDialog() {
     showDialog(
       context: context,
@@ -101,26 +179,19 @@ class _ReportWastePageState extends State<ReportWastePage> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: _isUploading ? null : () => Navigator.pop(context),
               child: const Text("Cancel"),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1976D2)),
-              onPressed: () {
-                Navigator.pop(context);
-                _descriptionController.clear();
-                setState(() {
-                  reportWasteImage = null;
-                  webImageBytes = null;
-                });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("Report submitted successfully!"),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              },
-              child: const Text("Submit", style: TextStyle(color: Colors.white)),
+              onPressed: _isUploading ? null : _uploadAndSubmitReport,
+              child: _isUploading
+                  ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+              )
+                  : const Text("Submit", style: TextStyle(color: Colors.white)),
             ),
           ],
         );

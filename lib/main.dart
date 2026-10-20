@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // FirebaseAuth इम्पोर्ट किया
 import 'login_page.dart';
+import 'citizen_dashboard.dart'; // अपने Citizen Dashboard या होम पेज की सही फाइल का नाम यहाँ दें
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,7 +41,33 @@ class EcoTrackApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFFF1F5F9),
         fontFamily: 'Roboto',
       ),
-      home: const SplashScreen(),
+      home: const AuthCheckScreen(), // सीधा SplashScreen की जगह AuthCheck पर जाएगा
+    );
+  }
+}
+
+// यह स्क्रीन चेक करेगी कि यूजर पहले से लॉग-इन है या नहीं
+class AuthCheckScreen extends StatelessWidget {
+  const AuthCheckScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        // जब तक कनेक्शन लोड हो रहा है, तब तक SplashScreen दिखाएं
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SplashScreen();
+        }
+
+        // अगर यूजर लॉग-इन है, तो सीधे डैशबोर्ड पर भेजें
+        if (snapshot.hasData && snapshot.data != null) {
+          return const CitizenDashboard(); // अपना सही डैशबोर्ड क्लास नेम यहाँ रखें
+        }
+
+        // अगर लॉग-इन नहीं है, तो SplashScreen के बाद Login Page दिखाएं
+        return const SplashScreen();
+      },
     );
   }
 }
@@ -56,10 +84,21 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     Future.delayed(const Duration(seconds: 2), () {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginPage()),
-      );
+      // यह चेक करेगा कि अगर यूजर पहले से ऑथेंटिकेटेड नहीं है तभी लॉगिन पेज पर जाए
+      if (mounted) {
+        User? user = FirebaseAuth.instance.currentUser;
+        if (user == null) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const LoginPage()),
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const CitizenDashboard()),
+          );
+        }
+      }
     });
   }
 

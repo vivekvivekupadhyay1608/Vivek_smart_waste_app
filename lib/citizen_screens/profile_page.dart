@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import '../login_page.dart'; // सही रिलेटिव पाथ
 
 class ProfilePage extends StatefulWidget {
   final bool isDarkMode;
@@ -20,23 +22,61 @@ class _ProfilePageState extends State<ProfilePage> {
   File? profileImage;
   Uint8List? webProfileImageBytes;
   final ImagePicker _picker = ImagePicker();
+  bool _isUploading = false;
 
   Future<void> _pickProfileImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
-      if (kIsWeb) {
-        var bytes = await image.readAsBytes();
-        setState(() {
-          webProfileImageBytes = bytes;
-        });
-      } else {
-        setState(() {
-          profileImage = File(image.path);
-        });
+      setState(() {
+        _isUploading = true;
+      });
+
+      try {
+        String downloadUrl = "";
+        Reference ref = FirebaseStorage.instance
+            .ref()
+            .child('citizen_profiles')
+            .child('${currentUser!.uid}.jpg');
+
+        if (kIsWeb) {
+          var bytes = await image.readAsBytes();
+          setState(() {
+            webProfileImageBytes = bytes;
+          });
+          await ref.putData(bytes);
+          downloadUrl = await ref.getDownloadURL();
+        } else {
+          File file = File(image.path);
+          setState(() {
+            profileImage = file;
+          });
+          await ref.putFile(file);
+          downloadUrl = await ref.getDownloadURL();
+        }
+
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUser!.uid)
+            .update({'photoUrl': downloadUrl});
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Profile picture updated and saved successfully!"), backgroundColor: Colors.green),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Failed to upload image: $e"), backgroundColor: Colors.red),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isUploading = false;
+          });
+        }
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Profile picture updated locally!")),
-      );
     }
   }
 
@@ -91,7 +131,7 @@ class _ProfilePageState extends State<ProfilePage> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text("Enter new email and current password for security verification (OTP/Link verification).", style: TextStyle(fontSize: 13, color: Colors.grey)),
+              const Text("Enter new email and current password for security verification.", style: TextStyle(fontSize: 13, color: Colors.grey)),
               const SizedBox(height: 10),
               TextField(
                 controller: newEmailController,
@@ -169,6 +209,7 @@ class _ProfilePageState extends State<ProfilePage> {
         String dbEmail = userData['email'] ?? 'No Email';
         String dbAddress = userData['address'] ?? 'Add your street address';
         String dbPincode = userData['pincode'] ?? 'Add pincode';
+        String? dbPhotoUrl = userData['photoUrl'];
 
         return ListView(
           padding: const EdgeInsets.all(20),
@@ -183,8 +224,14 @@ class _ProfilePageState extends State<ProfilePage> {
                         ? MemoryImage(webProfileImageBytes!)
                         : profileImage != null
                         ? FileImage(profileImage!) as ImageProvider
+                        : (dbPhotoUrl != null && dbPhotoUrl.isNotEmpty)
+                        ? NetworkImage(dbPhotoUrl) as ImageProvider
                         : const AssetImage('assets/Ecotrack.png'),
                   ),
+                  if (_isUploading)
+                    const Positioned.fill(
+                      child: CircularProgressIndicator(color: Colors.white),
+                    ),
                   Positioned(
                     bottom: 0,
                     right: 0,
@@ -193,7 +240,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       radius: 18,
                       child: IconButton(
                         icon: const Icon(Icons.edit, size: 16, color: Colors.white),
-                        onPressed: _pickProfileImage,
+                        onPressed: _isUploading ? null : _pickProfileImage,
                       ),
                     ),
                   )
@@ -248,7 +295,6 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(height: 10),
 
-            // ग्लोबल डार्क मोड टॉगल स्विच
             ListTile(
               tileColor: widget.isDarkMode ? Colors.grey[850] : Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -267,8 +313,19 @@ class _ProfilePageState extends State<ProfilePage> {
               leading: const Icon(Icons.logout, color: Colors.red),
               title: const Text("Log Out", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
               onTap: () async {
-                await FirebaseAuth.instance.signOut();
-                Navigator.pushReplacementNamed(context, '/login');
+                try {
+                  await FirebaseAuth.instance.signOut();
+
+                  if (context.mounted) {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (context) => LoginPage()),
+                          (route) => false,
+                    );
+                  }
+                } catch (e) {
+                  print("Logout Error: $e");
+                }
               },
             ),
           ],

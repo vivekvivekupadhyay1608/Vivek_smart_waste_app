@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart'; // 1. स्टोरेज इम्पोर्ट जोड़ा
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import '../login_page.dart'; // 2. सही लॉगिन पेज पाथ (जरूरत पड़ने पर अपने फोल्डर स्ट्रक्चर के हिसाब से एडजस्ट करें)
 
 class EmployeeProfilePage extends StatefulWidget {
   final bool isDarkMode;
@@ -21,23 +23,63 @@ class _EmployeeProfilePageState extends State<EmployeeProfilePage> {
   Uint8List? webProfileImageBytes;
   final ImagePicker _picker = ImagePicker();
   bool _isOnDuty = true;
+  bool _isUploading = false; // लोडिंग इंडिकेटर के लिए
 
+  // --- फिक्स 1: प्रोफाइल इमेज पिक करके Firebase Storage और Firestore में परमानेंट सेव करना ---
   Future<void> _pickProfileImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
-      if (kIsWeb) {
-        var bytes = await image.readAsBytes();
-        setState(() {
-          webProfileImageBytes = bytes;
-        });
-      } else {
-        setState(() {
-          profileImage = File(image.path);
-        });
+      setState(() {
+        _isUploading = true;
+      });
+
+      try {
+        String downloadUrl = "";
+        Reference ref = FirebaseStorage.instance
+            .ref()
+            .child('employee_profiles')
+            .child('${currentUser!.uid}.jpg');
+
+        if (kIsWeb) {
+          var bytes = await image.readAsBytes();
+          setState(() {
+            webProfileImageBytes = bytes;
+          });
+          await ref.putData(bytes);
+          downloadUrl = await ref.getDownloadURL();
+        } else {
+          File file = File(image.path);
+          setState(() {
+            profileImage = file;
+          });
+          await ref.putFile(file);
+          downloadUrl = await ref.getDownloadURL();
+        }
+
+        // Firestore डेटाबेस में फोटो यूआरएल अपडेट करें
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUser!.uid)
+            .update({'photoUrl': downloadUrl});
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Profile picture updated and saved successfully!"), backgroundColor: Colors.green),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Failed to upload image: $e"), backgroundColor: Colors.red),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isUploading = false;
+          });
+        }
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Profile picture updated locally!")),
-      );
     }
   }
 
@@ -172,6 +214,7 @@ class _EmployeeProfilePageState extends State<EmployeeProfilePage> {
         String dbPincode = userData['pincode'] ?? '201001';
         String dbEmpId = userData['employeeId'] ?? 'EMP-2026-001';
         String dbVehicleNo = userData['vehicleNumber'] ?? 'UP-16-TC-9988';
+        String? dbPhotoUrl = userData['photoUrl']; // डेटाबेस से सेव्ड फोटो यूआरएल
 
         return ListView(
           padding: const EdgeInsets.all(20),
@@ -182,12 +225,19 @@ class _EmployeeProfilePageState extends State<EmployeeProfilePage> {
                   CircleAvatar(
                     radius: 55,
                     backgroundColor: Colors.grey[300],
+                    // प्राथमिकता: 1. लोकल चुनी फोटो, 2. डेटाबेस यूआरएल, 3. डिफ़ॉल्ट एसेट
                     backgroundImage: kIsWeb && webProfileImageBytes != null
                         ? MemoryImage(webProfileImageBytes!)
                         : profileImage != null
                         ? FileImage(profileImage!) as ImageProvider
+                        : (dbPhotoUrl != null && dbPhotoUrl.isNotEmpty)
+                        ? NetworkImage(dbPhotoUrl) as ImageProvider
                         : const AssetImage('assets/Ecotrack.png'),
                   ),
+                  if (_isUploading)
+                    const Positioned.fill(
+                      child: CircularProgressIndicator(color: Colors.white),
+                    ),
                   Positioned(
                     bottom: 0,
                     right: 0,
@@ -196,7 +246,7 @@ class _EmployeeProfilePageState extends State<EmployeeProfilePage> {
                       radius: 18,
                       child: IconButton(
                         icon: const Icon(Icons.edit, size: 16, color: Colors.white),
-                        onPressed: _pickProfileImage,
+                        onPressed: _isUploading ? null : _pickProfileImage,
                       ),
                     ),
                   )
@@ -229,7 +279,6 @@ class _EmployeeProfilePageState extends State<EmployeeProfilePage> {
             ),
             const SizedBox(height: 10),
 
-            // नई फील्ड: Employee ID
             ListTile(
               tileColor: widget.isDarkMode ? Colors.grey[850] : Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -241,7 +290,6 @@ class _EmployeeProfilePageState extends State<EmployeeProfilePage> {
             ),
             const SizedBox(height: 10),
 
-            // नई फील्ड: Vehicle Number
             ListTile(
               tileColor: widget.isDarkMode ? Colors.grey[850] : Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -305,14 +353,26 @@ class _EmployeeProfilePageState extends State<EmployeeProfilePage> {
             ),
             const SizedBox(height: 10),
 
+            // --- फिक्स 2: लॉग-आउट बटन (अब सही से साइन-आउट करके लॉगिन पेज पर ले जाएगा) ---
             ListTile(
               tileColor: widget.isDarkMode ? Colors.grey[850] : Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               leading: const Icon(Icons.logout, color: Colors.red),
               title: const Text("Log Out", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
               onTap: () async {
-                await FirebaseAuth.instance.signOut();
-                Navigator.pushReplacementNamed(context, '/login');
+                try {
+                  await FirebaseAuth.instance.signOut();
+
+                  if (context.mounted) {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (context) => LoginPage()),
+                          (route) => false,
+                    );
+                  }
+                } catch (e) {
+                  print("Logout Error: $e");
+                }
               },
             ),
           ],
